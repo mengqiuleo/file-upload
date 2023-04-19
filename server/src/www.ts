@@ -1,3 +1,5 @@
+// www.ts 用来启服务，相当于入口
+
 import app from './app'; //app文件写配置项，调用了那些中间件：app.use
 import http from 'http';
 
