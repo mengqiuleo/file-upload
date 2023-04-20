@@ -1,8 +1,8 @@
 interface OPTIONS {
-  method: string,
+  method?: string,
   url: string,
   headers?: any,
-  data: any,
+  data?: any,
   baseURL?: string
 }
 
@@ -16,7 +16,7 @@ export function request(options: OPTIONS): Promise<any> {
   options = { ...defaultOptions, ...options, headers: { ...defaultOptions.headers, ...(options.headers || '')}}
   return new Promise(function (resolve: Function, reject: Function) {
     let xhr = new XMLHttpRequest()
-    xhr.open(options.method, options.baseURL + options.url)
+    xhr.open(options.method!, options.baseURL + options.url)
     for(let key in options.headers){
       xhr.setRequestHeader(key, options.headers[key])
     }

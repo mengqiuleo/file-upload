@@ -4,7 +4,7 @@ import logger from 'morgan'; //打印日志
 import { INTERNAL_SERVER_ERROR } from 'http-status-codes'; // 500
 import cors from 'cors';// 跨域
 import path from 'path'; 
-import { PUBLIC_DIR } from './utils';
+import { PUBLIC_DIR, TEMP_DIR, mergeChunks } from './utils';
 import fs from 'fs-extra';
 import multiparty from 'multiparty'; // 处理上传文件
 let app = express();
@@ -15,26 +15,28 @@ app.use(cors());
 app.use(express.static(path.resolve(__dirname, 'public')));
 
 // * 上传文件
-app.post('/upload', async (req: Request, res: Response, next: NextFunction) => {
-    let form = new multiparty.Form();
-    form.parse(req, async (err: any, fields, files) => {
-        if (err) {
-            return next(err); // 走这个next会直接调下面的处理错误的中间件
-        }
-        console.log('fields: ', fields)
-        console.log('files: ', files)
-        let [filename] = fields.filename;
-        let [chunk] = files.chunk;
-        await fs.move(chunk.path, path.resolve(PUBLIC_DIR, filename), { overwrite: true });
-        // fs.move 将文件从临时文件夹中移走
-        setTimeout(() => {
-            res.json({
-                success: true
-            });
-        }, 3000);
-    });
+app.post('/upload/:filename/:chunk_name', async (req: Request, res: Response, next: NextFunction) => {
+  let { filename, chunk_name } = req.params
+  let chunk_dir = path.resolve(TEMP_DIR, filename)
+  let exist = await fs.pathExists(chunk_dir)
+  if(!exist){
+    await fs.mkdirs(chunk_dir)
+  }
+  let chunkFilePath = path.resolve(chunk_dir, chunk_name)
+  // flags append 后面实现断点续传
+  let ws = fs.createWriteStream(chunkFilePath, { start: 0, flags: 'a' })
+  req.on('end', () => {
+    ws.close()
+    res.json({ success: true })
+  })
+  req.pipe(ws)
 });
 
+app.get('/merge/:filename', async (req: Request, res: Response, next: NextFunction) => {
+    let { filename, chunk_name } = req.params
+    await mergeChunks(filename)
+    res.json({ success: true })
+  });
 /**
 fields:  { filename: [ 'bg.jpg' ] }
 files:  {
