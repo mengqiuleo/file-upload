@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs-extra'
+import fs, {WriteStream} from 'fs-extra'
 export const TEMP_DIR = path.resolve(__dirname, 'temp');
 export const PUBLIC_DIR = path.resolve(__dirname, 'public');
 
@@ -26,7 +26,7 @@ export const splitChunks = async (filename: string, size: number = DEFAULT_SIZE)
     current += size
   }
 } 
-splitChunks('bg.jpg')
+// splitChunks('bg.jpg')
 // 执行 npm run utils 就可以对我们上传的文件分片，然后去temp文件夹下看分出来的东西
 
 
@@ -36,7 +36,30 @@ splitChunks('bg.jpg')
  * 2.把它们累加在一起，另外一旦加过了要把 temp 目录里的文件删除
  * 3.为了提高性能，尽量用流来实现，不要 readFile,writeFile
  */
+// pipeStream 创建可读流
+const pipeStream = (filePath:string, ws: WriteStream) => {
+  return new Promise((resolve: Function, reject: Function) => {
+    let rs = fs.createReadStream(filePath) // filePath是我们要合并的某个分片，rs是创建一个流
+    rs.on('end', async () => {
+      //rs.close() //当往流里面灌完了，就关闭
+      await fs.unlink(filePath)
+      resolve()
+    })
+    rs.pipe(ws) //rs创建一个可读流，然后 pipe 是往里面灌
+  })
+}
 export const mergeChunks = async (filename: string, size: number = DEFAULT_SIZE) => {
-
+  const filePath = path.resolve(PUBLIC_DIR,filename) //合并到哪个文件目录
+  const chunksDir = path.resolve(TEMP_DIR, filename) //哪个文件需要合并
+  const chunkFiles = await fs.readdir(chunksDir)
+  //按文件名升序
+  chunkFiles.sort((a,b) => Number(a.split('-')[1]) - Number(b.split('-')[1]))
+  await Promise.all(chunkFiles.map((chunkFile: string, index: number) => pipeStream(
+    path.resolve(chunksDir, chunkFile),
+    fs.createWriteStream(filePath, {
+      start: index * size
+    })
+  )))
+  await fs.rmdir(chunksDir) //删除
 }
 mergeChunks('bg.jpg')

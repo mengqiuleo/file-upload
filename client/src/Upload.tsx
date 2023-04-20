@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Row, Col, Input, Button, message } from 'antd'
 import {  request } from './utils'
+const DEFAULT_SIZE = 1024 * 1024 * 100
+interface Part {
+  chunk: Blob;
+  size: number;
+}
+
 
 function MyUpload() {
   let [currentFile, setCurrentFile] = useState<File>() //2.声明hook，将文件状态存储一下
@@ -38,6 +44,8 @@ function MyUpload() {
     if(!allowUpload(currentFile)){ //判断上传的文件是否合法
       return message.error('不支持此类型的文件进行上传')
     }
+
+    //----------一、最初实现: basic-upload-----------------
     const formData = new FormData() //创建向后端发送的表单，然后向表单中添加字段, 这里是添加了两个字段
     formData.append('chunk', currentFile) //添加文件，字段名chunk
     formData.append('filename', currentFile.name) //bg.jpg
