@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Row, Col, Input, Button, message } from 'antd'
 import { request } from './utils';
-const DEFAULT_SIZE = 1024 * 1024 * 100 //每块100MB
+// const DEFAULT_SIZE = 1024 * 1024 * 100 //每块100MB
+const DEFAULT_SIZE = 1024 * 1024 //每块1MB
 interface Part {
   chunk: Blob;
   size: number;
@@ -14,7 +15,7 @@ function MyUpload() {
   let [currentFile, setCurrentFile] = useState<File>() //2.声明hook，将文件状态存储一下
   let [objectURL, setObjectURL] = useState<string>('')
   let [hashPercent, setHashPercent] = useState<number>(0) //计算hash的百分比
-  let [filename, setFilename] = useState<string>('')
+  let [filename, setFilename] = useState<string>('') //保存当前文件名，这个文件名是带hash的
   let [partList, setPartList] = useState<Part[]>([])
 
   // 4.当文件改变时，更新预览信息，如何监听？ useEffect
@@ -51,7 +52,7 @@ function MyUpload() {
     }
 
     //----------二、分片上传-----------------
-    function createChunks(file:File): Part[] {
+    function createChunks(file:File): Part[] { //创建分片数组
       let current = 0
       let partList:Part[] = []
       while(current < file.size) {
@@ -67,7 +68,7 @@ function MyUpload() {
         worker.postMessage({partList})
         worker.onmessage = function(event){
           let { percent, hash } = event.data
-          console.log('percent', percent)
+          console.log('当前计算hash进度, percent', percent)
           setHashPercent(percent)
           if(hash){
             resolve(hash)
@@ -78,12 +79,12 @@ function MyUpload() {
     let partList: Part[] = createChunks(currentFile) //拿到分片的数组
     //先计算这个对象哈希值，哈希值是为了实现秒传的功能，就是每个文件有个哈希值，那么下次上传这个文件时就可以判断已经上传过了
     //我们通过子进程 web Worker 来计算哈希
-    let fileHash = await calculateHash(partList)
+    let fileHash = await calculateHash(partList) //计算hash
     let lastDotIndex = currentFile.name.lastIndexOf('.') //bg.jpg 这里是拿到.jpg
     let extName = currentFile.name.slice(lastDotIndex) //.jpg
-    let filename = `${fileHash}${extName}` //xxxhash.jpg
+    let filename = `${fileHash}${extName}` //hash.jpg
     setFilename(filename)
-    partList.forEach((item: Part, index) => {
+    partList.forEach((item: Part, index) => { //给每一个分片整理
       item.filename = filename
       item.chunk_name = `${filename}-${index}`
     })
@@ -94,6 +95,7 @@ function MyUpload() {
     let requests = createRequests(partList, filename)
     await Promise.all(requests)
     await request({url: `/merge/${filename}`})
+    message.info('上传成功!')
   }
   function createRequests(partList: Part[], filename: string){
     return partList.map((part: Part) => request({
