@@ -25,21 +25,19 @@ app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Respo
   }
   let chunkFilePath = path.resolve(chunk_dir, chunk_name)
   // flags append 后面实现断点续传
-  let ws = fs.createWriteStream(chunkFilePath, { start, flags: 'a' })
+  let ws = fs.createWriteStream(chunkFilePath, { start: 0, flags: 'a' })
   req.on('end', () => {
     ws.close()
     res.json({ success: true })
   })
 
-  // req.pipe(ws) //这里将前端传过来的分片读入到temp目录下
-
-  req.on('error', () => {
+  req.on('error', () => {//取消相当于异常关闭，我们需要手动关闭流
     ws.close()
   })
   req.on('close', () => {
     ws.close()
   })
-  req.pipe(ws)
+  req.pipe(ws)//这里将前端传过来的分片读入到temp目录下
 
 });
 
@@ -49,12 +47,12 @@ app.get('/merge/:filename', async (req: Request, res: Response, next: NextFuncti
     res.json({ success: true })
   });
 
-// # 断点续传：每次先计算hash值，
+// # 断点续传
 app.get('/verify/:filename', async (req:Request, res: Response) => {
   let { filename } = req.params
   let filePath = path.resolve(PUBLIC_DIR, filename)
   let existFile = await fs.pathExists(filePath)
-  if(existFile){
+  if(existFile){ //能在public目录下找到，说明已经完整上传过了，是已经合并到public目录下的，直接返回，告诉说不用上传了
     return {
       success: true,
       needUpload: false //已经上传过了
@@ -63,10 +61,10 @@ app.get('/verify/:filename', async (req:Request, res: Response) => {
   let tempDir = path.resolve(TEMP_DIR, filename)
   let exist = await fs.pathExists(tempDir)
   let uploadList: any[] = []
-  if(exist) {
+  if(exist) { //能在temp目录下找到，说明上传了一半
     uploadList =  await fs.readdir(tempDir)
     uploadList = await Promise.all(uploadList.map(async (filename: string) => {
-      let stat = await fs.stat(path.resolve(tempDir, filename))
+      let stat = await fs.stat(path.resolve(tempDir, filename)) //stat是对当前文件的描述，相当于属性，里面有大小相关的属性
       return {
         filename,
         size: stat.size //现在的文件大小 100M 30M
