@@ -62,4 +62,4 @@ export const mergeChunks = async (filename: string, size: number = DEFAULT_SIZE)
   )))
   await fs.rmdir(chunksDir) //删除
 }
-mergeChunks('bg.jpg')
+// mergeChunks('bg.jpg')

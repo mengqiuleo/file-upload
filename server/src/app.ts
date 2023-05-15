@@ -16,7 +16,7 @@ app.use(express.static(path.resolve(__dirname, 'public')));
 
 // * 上传文件
 app.post('/upload', async (req: Request, res: Response, next: NextFunction) => {
-    let form = new multiparty.Form();
+    let form = new multiparty.Form(); //multiparty, 创建表单的
     form.parse(req, async (err: any, fields, files) => {
         if (err) {
             return next(err); // 走这个next会直接调下面的处理错误的中间件

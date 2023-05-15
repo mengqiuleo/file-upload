@@ -49,6 +49,7 @@ function MyUpload() {
     const formData = new FormData() //创建向后端发送的表单，然后向表单中添加字段, 这里是添加了两个字段
     formData.append('chunk', currentFile) //添加文件，字段名chunk
     formData.append('filename', currentFile.name) //bg.jpg
+    console.log('formData: ', formData)
     let result = await request({
       url: '/upload',
       method: 'POST',

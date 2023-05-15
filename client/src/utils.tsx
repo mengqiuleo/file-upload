@@ -14,6 +14,7 @@ export function request(options: OPTIONS): Promise<any> {
     data: {}
   }
   options = { ...defaultOptions, ...options, headers: { ...defaultOptions.headers, ...(options.headers || '')}}
+  // 这里的 headers 其实就是：name='chunk', filename='bg.jpg' 
   return new Promise(function (resolve: Function, reject: Function) {
     let xhr = new XMLHttpRequest()
     xhr.open(options.method, options.baseURL + options.url)
