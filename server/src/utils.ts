@@ -9,7 +9,7 @@ export const PUBLIC_DIR = path.resolve(__dirname, 'public');
  * 一般是会在客户端切，在服务端合并
  * 前端切blob 后端切buffer
  */
-const DEFAULT_SIZE = 1024 * 1024 // 每 10KB 切一片
+const DEFAULT_SIZE = 1024 * 1024 // 每 1MB 切一片
 export const splitChunks = async (filename: string, size: number = DEFAULT_SIZE) => {
   let filePath = path.resolve(PUBLIC_DIR, filename) //要分割的文件绝对路径
   const chunksDir = path.resolve(TEMP_DIR, filename) //以文件名命名的临时目录，存放分割后的文件
