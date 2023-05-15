@@ -30,13 +30,15 @@ app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Respo
     ws.close()
     res.json({ success: true })
   })
-  req.on('error', () => { //取消相当于异常关闭，我们需要手动关闭流
+
+  req.on('error', () => {//取消相当于异常关闭，我们需要手动关闭流
     ws.close()
   })
   req.on('close', () => {
     ws.close()
   })
-  req.pipe(ws)
+  req.pipe(ws)//这里将前端传过来的分片读入到temp目录下
+
 });
 
 app.get('/merge/:filename', async (req: Request, res: Response, next: NextFunction) => {

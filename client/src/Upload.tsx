@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Row, Col, Input, Button, message, Table, Progress } from 'antd'
 import { request } from './utils';
 const DEFAULT_SIZE = 1024 * 10  //每块10KB
+// const DEFAULT_SIZE = 1024 * 1024 * 100 //每块100MB
+
 interface Part {
   chunk: Blob;
   size: number;
@@ -25,7 +27,7 @@ function MyUpload() {
   let [currentFile, setCurrentFile] = useState<File>() //2.声明hook，将文件状态存储一下
   let [objectURL, setObjectURL] = useState<string>('')
   let [hashPercent, setHashPercent] = useState<number>(0) //计算hash的百分比
-  let [filename, setFilename] = useState<string>('')
+  let [filename, setFilename] = useState<string>('') //保存当前文件名，这个文件名是带hash的
   let [partList, setPartList] = useState<Part[]>([])
   let [uploadStatus, setUploadStatus] = useState<UploadStatus>(UploadStatus.INIT)
 
@@ -71,7 +73,7 @@ function MyUpload() {
     }
 
     //----------二、分片上传-----------------
-    function createChunks(file:File): Part[] {
+    function createChunks(file:File): Part[] { //创建分片数组
       let current = 0
       let partList:Part[] = []
       while(current < file.size) {
@@ -88,6 +90,7 @@ function MyUpload() {
         worker.onmessage = function(event){
           let { percent, hash } = event.data
           console.log('计算hash进度percent', percent)
+
           setHashPercent(percent)
           if(hash){
             resolve(hash)
@@ -99,12 +102,12 @@ function MyUpload() {
     let partList: Part[] = createChunks(currentFile) //拿到分片的数组
     //先计算这个对象哈希值，哈希值是为了实现秒传的功能，就是每个文件有个哈希值，那么下次上传这个文件时就可以判断已经上传过了
     //我们通过子进程 web Worker 来计算哈希
-    let fileHash = await calculateHash(partList)
+    let fileHash = await calculateHash(partList) //计算hash
     let lastDotIndex = currentFile.name.lastIndexOf('.') //bg.jpg 这里是拿到.jpg
     let extName = currentFile.name.slice(lastDotIndex) //.jpg
-    let filename = `${fileHash}${extName}` //xxxhash.jpg
+    let filename = `${fileHash}${extName}` //hash.jpg
     setFilename(filename)
-    partList.forEach((item: Part, index) => {
+    partList.forEach((item: Part, index) => { //给每一个分片整理
       item.filename = filename
       item.chunk_name = `${filename}-${index}`
       item.loaded = 0
@@ -120,6 +123,7 @@ function MyUpload() {
   }
   async function uploadParts(partList:Part[], filename: string){
     let { needUpload, uploadList } = await verify(filename) //先校验一下，看有没有传过
+
     if(!needUpload){
       message.success('秒传成功')
     }
@@ -133,6 +137,7 @@ function MyUpload() {
       message.error('上传失败或暂停')
       // uploadParts(partList, filename)
     }
+
   }
   function createRequests(partList: Part[], uploadList: Uploaded[], filename: string){
     return partList.filter((part: Part) => { //过滤：已经上传过的分片不用上传
