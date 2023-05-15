@@ -30,6 +30,9 @@ app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Respo
     ws.close()
     res.json({ success: true })
   })
+
+  // req.pipe(ws) //这里将前端传过来的分片读入到temp目录下
+
   req.on('error', () => {
     ws.close()
   })
@@ -37,10 +40,11 @@ app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Respo
     ws.close()
   })
   req.pipe(ws)
+
 });
 
 app.get('/merge/:filename', async (req: Request, res: Response, next: NextFunction) => {
-    let { filename, chunk_name } = req.params
+    let { filename } = req.params
     await mergeChunks(filename)
     res.json({ success: true })
   });
