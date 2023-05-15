@@ -4,6 +4,8 @@ interface OPTIONS {
   headers?: any,
   data?: any,
   baseURL?: string
+  setXHR?: any
+  onProgress?: any
 }
 
 export function request(options: OPTIONS): Promise<any> {
@@ -13,14 +15,15 @@ export function request(options: OPTIONS): Promise<any> {
     headers: {},
     data: {}
   }
-  options = { ...defaultOptions, ...options, headers: { ...defaultOptions.headers, ...(options.headers || '')}}
+  options = { ...defaultOptions, ...options, headers: { ...defaultOptions.headers, ...(options.headers || {})}}
   return new Promise(function (resolve: Function, reject: Function) {
     let xhr = new XMLHttpRequest()
-    xhr.open(options.method!, options.baseURL + options.url)
+    xhr.open(options.method!, options.baseURL + options.url, true)
     for(let key in options.headers){
       xhr.setRequestHeader(key, options.headers[key])
     }
     xhr.responseType = 'json'
+    xhr.upload.onprogress = options.onProgress
     xhr.onreadystatechange = function() {
       if(xhr.readyState == 4){
         if(xhr.status === 200){
@@ -29,6 +32,9 @@ export function request(options: OPTIONS): Promise<any> {
           reject(xhr.response)
         }
       }
+    }
+    if(options.setXHR){
+      options.setXHR(xhr)
     }
     xhr.send(options.data)
   })

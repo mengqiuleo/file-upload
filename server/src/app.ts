@@ -15,8 +15,9 @@ app.use(cors());
 app.use(express.static(path.resolve(__dirname, 'public')));
 
 // * 上传文件
-app.post('/upload/:filename/:chunk_name', async (req: Request, res: Response, next: NextFunction) => {
+app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Response, next: NextFunction) => {
   let { filename, chunk_name } = req.params
+  let start: number = Number(req.params.start)
   let chunk_dir = path.resolve(TEMP_DIR, filename)
   let exist = await fs.pathExists(chunk_dir)
   if(!exist){
@@ -24,10 +25,16 @@ app.post('/upload/:filename/:chunk_name', async (req: Request, res: Response, ne
   }
   let chunkFilePath = path.resolve(chunk_dir, chunk_name)
   // flags append 后面实现断点续传
-  let ws = fs.createWriteStream(chunkFilePath, { start: 0, flags: 'a' })
+  let ws = fs.createWriteStream(chunkFilePath, { start, flags: 'a' })
   req.on('end', () => {
     ws.close()
     res.json({ success: true })
+  })
+  req.on('error', () => {
+    ws.close()
+  })
+  req.on('close', () => {
+    ws.close()
   })
   req.pipe(ws)
 });
@@ -37,6 +44,37 @@ app.get('/merge/:filename', async (req: Request, res: Response, next: NextFuncti
     await mergeChunks(filename)
     res.json({ success: true })
   });
+
+// # 断点续传：每次先计算hash值，
+app.get('/verify/:filename', async (req:Request, res: Response) => {
+  let { filename } = req.params
+  let filePath = path.resolve(PUBLIC_DIR, filename)
+  let existFile = await fs.pathExists(filePath)
+  if(existFile){
+    return {
+      success: true,
+      needUpload: false //已经上传过了
+    }
+  }
+  let tempDir = path.resolve(TEMP_DIR, filename)
+  let exist = await fs.pathExists(tempDir)
+  let uploadList: any[] = []
+  if(exist) {
+    uploadList =  await fs.readdir(tempDir)
+    uploadList = await Promise.all(uploadList.map(async (filename: string) => {
+      let stat = await fs.stat(path.resolve(tempDir, filename))
+      return {
+        filename,
+        size: stat.size //现在的文件大小 100M 30M
+      }
+    }))
+  }
+  res.json({
+    success: true,
+    needUpload: true,
+    uploadList //已经上传的文件列表
+  })
+})
 /**
 fields:  { filename: [ 'bg.jpg' ] }
 files:  {
