@@ -34,7 +34,7 @@ export function request(options: OPTIONS): Promise<any> {
       }
     }
     if(options.setXHR){
-      options.setXHR(xhr)
+      options.setXHR(xhr) //暂停
     }
     xhr.send(options.data)
   })

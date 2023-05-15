@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Row, Col, Input, Button, message, Table, Progress } from 'antd'
 import { request } from './utils';
-const DEFAULT_SIZE = 1024 * 1024 * 100 //每块100MB
+const DEFAULT_SIZE = 1024 * 10  //每块10KB
 interface Part {
   chunk: Blob;
   size: number;
@@ -87,7 +87,7 @@ function MyUpload() {
         worker.postMessage({partList})
         worker.onmessage = function(event){
           let { percent, hash } = event.data
-          console.log('percent', percent)
+          console.log('计算hash进度percent', percent)
           setHashPercent(percent)
           if(hash){
             resolve(hash)
@@ -119,7 +119,7 @@ function MyUpload() {
     })
   }
   async function uploadParts(partList:Part[], filename: string){
-    let { needUpload, uploadList } = await verify(filename)
+    let { needUpload, uploadList } = await verify(filename) //先校验一下，看有没有传过
     if(!needUpload){
       message.success('秒传成功')
     }
@@ -135,19 +135,19 @@ function MyUpload() {
     }
   }
   function createRequests(partList: Part[], uploadList: Uploaded[], filename: string){
-    return partList.filter((part: Part) => {
+    return partList.filter((part: Part) => { //过滤：已经上传过的分片不用上传
       let uploadFile = uploadList.find(item => item.filename === part.chunk_name)
-      if(!uploadFile){
+      if(!uploadFile){ //如果没有当前分片
         part.loaded = 0 //已经上传的字节数为0
         part.percent = 0 //已经上传的百分比为0
-        return true
+        return true //返回true说明要上传
       }
-      if(uploadFile.size < part.chunk.size){
+      if(uploadFile.size < part.chunk.size){ //存在当前分片
         part.loaded = uploadFile.size
         part.percent = Number((part.loaded/part.chunk.size*100).toFixed(2))
-        return true
+        return true //没上传完也要上传
       } 
-      return false
+      return false //剩下的就是直接过滤掉，因为已经上传过了
     }).map((part: Part) => request({
       url: `/upload/${filename}/${part.chunk_name}/${part.loaded}`,
       method: 'POST', 
@@ -157,7 +157,7 @@ function MyUpload() {
         part.percent = Number(((part.loaded! + event.loaded)/part.chunk.size*100).toFixed(2))
         setPartList([...partList])
       },
-      data: part.chunk.slice(part.loaded)
+      data: part.chunk.slice(part.loaded) //暂停续传的时候，截取未上传的
     }))
   }
   function allowUpload(file: File) { //判断上传的文件是否合法：主要是判断文件大小还有文件类型
@@ -203,23 +203,21 @@ function MyUpload() {
   console.log('totalPercent', totalPercent)
   let uploadProgress = uploadStatus !== UploadStatus.INIT ? (
     <>
-      <Row>
-        <Col span={4}>
-          hash进度:
-        </Col>
-        <Col span={20}>
-          <Progress percent={hashPercent}></Progress>
-        </Col>
-      </Row> 
-      <Row>
-        <Col span={4}>
-          总进度:
-        </Col>
-        <Col span={20}>
-          <Progress percent={totalPercent}></Progress>
-        </Col>
-      </Row> 
-      <Table columns={columns} dataSource={partList} rowKey={row => row.chunk_name!}></Table>
+      <div style={{width: 500, height: 500, margin: 20}}>
+        <Row>
+          <Col span={4}> hash进度: </Col>
+          <Col span={20}>
+            <Progress percent={hashPercent}></Progress>
+          </Col>
+        </Row> 
+        <Row>
+          <Col span={4}> 总进度: </Col>
+          <Col span={20}>
+            <Progress percent={totalPercent}></Progress>
+          </Col>
+        </Row> 
+        <Table columns={columns} dataSource={partList} rowKey={row => row.chunk_name!}></Table>
+      </div>
     </>  
   ) : null
   return (
@@ -244,7 +242,7 @@ function MyUpload() {
         </Col>
         <Col span={12}>
           <div>显示文件的预览信息</div>
-          {objectURL && <img src={objectURL} style={{width:100}}/>}
+          {objectURL && <img src={objectURL} style={{width:200}}/>}
         </Col>
       </Row> 
       
