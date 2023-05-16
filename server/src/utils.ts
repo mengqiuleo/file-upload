@@ -10,7 +10,7 @@ export const PUBLIC_DIR = path.resolve(__dirname, 'public');
  * 前端切blob 后端切buffer
  */
 
-const DEFAULT_SIZE = 1024 * 10  // 每 10KB 切一片
+const DEFAULT_SIZE = 1024 * 10 * 30  // 每 10KB 切一片
 
 export const splitChunks = async (filename: string, size: number = DEFAULT_SIZE) => {
   let filePath = path.resolve(PUBLIC_DIR, filename) //要分割的文件绝对路径

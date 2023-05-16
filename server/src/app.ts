@@ -17,7 +17,7 @@ app.use(express.static(path.resolve(__dirname, 'public')));
 // * 上传文件
 app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Response, next: NextFunction) => {
   let { filename, chunk_name } = req.params
-  let start: number = Number(req.params.start)
+  let start: number = Number(req.params.start) //这里是为了控制每个分片续传的时候，前端传过来每个分片没有上传过的开头，然后后端从这个开头开始往temp文件夹里面写
   let chunk_dir = path.resolve(TEMP_DIR, filename)
   let exist = await fs.pathExists(chunk_dir)
   if(!exist){
@@ -25,7 +25,7 @@ app.post('/upload/:filename/:chunk_name/:start', async (req: Request, res: Respo
   }
   let chunkFilePath = path.resolve(chunk_dir, chunk_name)
   // flags append 后面实现断点续传
-  let ws = fs.createWriteStream(chunkFilePath, { start: 0, flags: 'a' })
+  let ws = fs.createWriteStream(chunkFilePath, { start, flags: 'a' })
   req.on('end', () => {
     ws.close()
     res.json({ success: true })

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Row, Col, Input, Button, message, Table, Progress } from 'antd'
 import { request } from './utils';
-const DEFAULT_SIZE = 1024 * 10  //每块10KB
+const DEFAULT_SIZE = 1024 * 10 * 30  //每块10KB
 // const DEFAULT_SIZE = 1024 * 1024 * 100 //每块100MB
 
 interface Part {
